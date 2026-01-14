@@ -61,8 +61,8 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
     Do not use markdown backticks or any surrounding text.
     Structure: { "appName": "string", "description": "string", "elements": [] }`;
 
-    // Doğru model adı: gemini-1.5-flash (kararlı ve güvenilir)
-    const model = "gemini-1.5-flash";
+    // v1beta API için doğru model adı (2026'da mevcut)
+    const model = "gemini-2.5-flash";
 
     // Gemini API endpoint - API Key URL parametresi olarak gönderiliyor
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
