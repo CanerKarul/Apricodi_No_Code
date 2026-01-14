@@ -6,11 +6,16 @@ const corsHeaders = {
 };
 
 export const handler = async (event: any) => {
-  // CORS preflight
+  // CORS Preflight (Ön kontrol) taleplerini yanıtla
   if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 204, headers: corsHeaders, body: "" };
+    return {
+      statusCode: 204,
+      headers: corsHeaders,
+      body: "",
+    };
   }
 
+  // Sadece POST isteklerine izin ver
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -20,60 +25,82 @@ export const handler = async (event: any) => {
   }
 
   try {
+    // Netlify Environment Variables'tan anahtarı al
     const apiKey = process.env.GEMINI_API_KEY;
+    
     if (!apiKey) {
       return {
         statusCode: 500,
         headers: corsHeaders,
-        body: JSON.stringify({ error: "Missing GEMINI_API_KEY on Netlify environment" }),
+        body: JSON.stringify({ error: "Netlify yapılandırmasında GEMINI_API_KEY eksik." }),
       };
     }
 
-    const body = JSON.parse(event.body || "{}");
-    const userPrompt = body.prompt;
-    
-    if (!userPrompt || typeof userPrompt !== "string") {
+    const requestBody = JSON.parse(event.body || "{}");
+    const userPrompt = requestBody.prompt;
+
+    if (!userPrompt) {
       return {
         statusCode: 400,
         headers: corsHeaders,
-        body: JSON.stringify({ error: "Missing prompt" }),
+        body: JSON.stringify({ error: "Prompt içeriği gerekli." }),
       };
     }
 
-    // Sistem talimatını prompt içine gömerek kesin JSON çıktısı alıyoruz
-    const systemInstruction = "You are a professional software architect. Return ONLY a valid JSON object. No conversational text. Structure: { appName: string, description: string, elements: Array }";
-    const fullPrompt = `${systemInstruction}\n\nUser Request: ${userPrompt}`;
-
-    // Gemini API - API KEY ile çalışan doğru REST endpoint (Sorgu parametresi ile)
-    const model = "gemini-3-flash-preview"; 
+    // Kesin JSON çıktısı için sistem talimatı
+    const systemInstruction = "You are a professional UI/UX architect. Return ONLY a valid JSON object. No markdown backticks. No extra text. Structure: { \"appName\": \"string\", \"description\": \"string\", \"elements\": [] }";
+    
+    // Model: Gemini 3 Flash Preview (En hızlı ve güncel)
+    const model = "gemini-3-flash-preview";
+    
+    // ÖNEMLİ DÜZELTME: API Key URL parametresi olarak ekleniyor
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    const upstream = await fetch(url, {
+    const response = await fetch(url, {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json"
-        // ÖNEMLİ: Authorization header'ı kaldırıldı
+      headers: {
+        "Content-Type": "application/json",
+        // 'Authorization' başlığı tamamen kaldırıldı!
       },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: fullPrompt }] }],
+        contents: [
+          {
+            parts: [
+              { text: `${systemInstruction}\n\nUser Request: ${userPrompt}` }
+            ]
+          }
+        ],
         generationConfig: {
           responseMimeType: "application/json"
         }
       }),
     });
 
-    const data = await upstream.json();
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Gemini API Error Response:", data);
+      return {
+        statusCode: response.status,
+        headers: corsHeaders,
+        body: JSON.stringify(data),
+      };
+    }
 
     return {
-      statusCode: upstream.status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      statusCode: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(data),
     };
   } catch (err: any) {
+    console.error("Netlify Function Crash:", err);
     return {
       statusCode: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Function crash", details: String(err) }),
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Sunucu Hatası", details: err.message }),
     };
   }
 };
