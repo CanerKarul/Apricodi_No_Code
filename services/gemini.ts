@@ -1,3 +1,4 @@
+
 import { AppSchema } from "../types.ts";
 
 export const generateAppSchema = async (prompt: string): Promise<AppSchema> => {
@@ -10,26 +11,32 @@ export const generateAppSchema = async (prompt: string): Promise<AppSchema> => {
       body: JSON.stringify({ prompt }),
     });
 
+    const json = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Sunucu hatası: ${response.status}`);
+      console.error("Function error:", JSON.stringify(json, null, 2));
+      throw new Error(json?.error?.message || json?.error || "Sunucu hatası");
     }
 
-    const geminiRawResponse = await response.json();
-    
     // Gemini REST yanıt yapısını ayrıştır (candidates[0].content.parts[0].text)
-    const textOutput = geminiRawResponse?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
     
-    if (!textOutput) {
-      throw new Error("Yapay zeka geçerli bir yanıt oluşturamadı.");
+    if (!rawText) {
+      throw new Error("Yapay zeka yanıtı boş döndü.");
     }
+
+    // Markdown temizleme: ```json ... ``` veya ``` ... ``` bloklarını kaldır
+    const cleaned = rawText
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
 
     try {
-      const schema = JSON.parse(textOutput);
+      const schema = JSON.parse(cleaned);
       return schema as AppSchema;
     } catch (parseError) {
-      console.error("JSON Parsing Error:", textOutput);
-      throw new Error("AI yanıtı beklenen formatta değil (JSON hatası).");
+      console.error("JSON Parse Failed. Cleaned Text:", cleaned);
+      throw new Error("AI çıktısı geçerli bir JSON formatında değil.");
     }
   } catch (error: any) {
     console.error("Gemini Service Error:", error);
