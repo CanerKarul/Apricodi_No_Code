@@ -1,50 +1,59 @@
 
-export default async (req: Request) => {
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-  };
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
+export const handler = async (event: any) => {
   // CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 204, headers: corsHeaders, body: "" };
   }
 
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method Not Allowed" }), { 
-      status: 405, 
-      headers: { ...corsHeaders, "Content-Type": "application/json" } 
-    });
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Method Not Allowed" }),
+    };
   }
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Netlify üzerinde GEMINI_API_KEY bulunamadı." }), { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Missing GEMINI_API_KEY on Netlify environment" }),
+      };
     }
 
-    const { prompt } = await req.json();
-    if (!prompt) {
-      return new Response(JSON.stringify({ error: "Prompt eksik." }), { 
-        status: 400, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+    const body = JSON.parse(event.body || "{}");
+    const userPrompt = body.prompt;
+    
+    if (!userPrompt || typeof userPrompt !== "string") {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Missing prompt" }),
+      };
     }
 
     // Sistem talimatını prompt içine gömerek kesin JSON çıktısı alıyoruz
-    const systemInstruction = "You are a UI architect. Return ONLY a valid JSON object. No conversational text. No markdown backticks. Structure: { appName: string, description: string, elements: Array }";
-    const fullPrompt = `${systemInstruction}\n\nUser Request: ${prompt}`;
+    const systemInstruction = "You are a professional software architect. Return ONLY a valid JSON object. No conversational text. Structure: { appName: string, description: string, elements: Array }";
+    const fullPrompt = `${systemInstruction}\n\nUser Request: ${userPrompt}`;
 
-    const model = "gemini-1.5-flash";
+    // Gemini API - API KEY ile çalışan doğru REST endpoint (Sorgu parametresi ile)
+    const model = "gemini-3-flash-preview"; 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const upstream = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json"
+        // ÖNEMLİ: Authorization header'ı kaldırıldı
+      },
       body: JSON.stringify({
         contents: [{ parts: [{ text: fullPrompt }] }],
         generationConfig: {
@@ -55,14 +64,16 @@ export default async (req: Request) => {
 
     const data = await upstream.json();
 
-    return new Response(JSON.stringify(data), {
-      status: upstream.status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
+    return {
+      statusCode: upstream.status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    };
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: "Function crash", details: err.message }), { 
-      status: 500, 
-      headers: { ...corsHeaders, "Content-Type": "application/json" } 
-    });
+    return {
+      statusCode: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Function crash", details: String(err) }),
+    };
   }
 };

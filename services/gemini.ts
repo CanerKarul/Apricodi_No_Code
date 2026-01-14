@@ -22,7 +22,7 @@ export const generateAppSchema = async (prompt: string): Promise<AppSchema> => {
     const rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!rawText) {
-      throw new Error("Yapay zeka yanıtı boş döndü.");
+      throw new Error("AI yanıtı boş döndü.");
     }
 
     // Markdown temizleme: ```json ... ``` veya ``` ... ``` bloklarını kaldır
