@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { generateAppSchema } from '../services/gemini.ts';
 import { AppSchema } from '../types.ts';
 import DynamicRenderer from './DynamicRenderer.tsx';
@@ -19,6 +19,14 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [loading, setLoading] = useState(false);
   const [schema, setSchema] = useState<AppSchema>(INITIAL_SCHEMA);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [apiReady, setApiReady] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Check if API key is properly injected
+    const key = process.env.API_KEY;
+    const isMissing = !key || key === "undefined" || key === "" || key.includes("process.env");
+    setApiReady(!isMissing);
+  }, []);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -29,11 +37,16 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       setPrompt("");
     } catch (error: any) {
       console.error("Builder Error:", error);
-      const errorMessage = error.message || "Bilinmeyen bir hata oluştu.";
-      alert(`Hata: ${errorMessage}\n\nDetaylar için tarayıcı konsoluna (F12) bakın.`);
+      alert(error.message || "Bilinmeyen bir hata oluştu.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const copyBuildCommand = () => {
+    const cmd = `find . -name "*.js" -o -name "*.ts" -o -name "*.tsx" | xargs sed -i "s|process.env.API_KEY|'$API_KEY'|g" && npm run build`;
+    navigator.clipboard.writeText(cmd);
+    alert("Build komutu kopyalandı! Netlify paneline yapıştırabilirsiniz.");
   };
 
   return (
@@ -52,9 +65,33 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             <p className="text-slate-400">AI Asistanı:</p>
             <p className="mt-1">Nasıl bir uygulama oluşturmak istersin? İhtiyaçlarını detaylıca yazarsan daha iyi sonuçlar verebilirim.</p>
           </div>
+
+          {/* API Status Indicator */}
+          <div className="flex items-center gap-2 px-1">
+             <div className={`w-2 h-2 rounded-full ${apiReady === true ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : apiReady === false ? 'bg-red-500 animate-pulse' : 'bg-slate-600'}`} />
+             <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500">
+               AI SYSTEM: {apiReady === true ? 'READY' : apiReady === false ? 'CONFIG ERROR' : 'CHECKING...'}
+             </span>
+          </div>
+
+          {/* Troubleshooting Help */}
+          {apiReady === false && (
+            <div className="bg-slate-900/80 border border-orange-500/20 p-4 rounded-xl space-y-3">
+              <p className="text-[11px] text-orange-400 font-bold uppercase">Netlify Kurulum Rehberi</p>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Netlify, güvenlik nedeniyle değişkenleri koda otomatik gömmez. Aşağıdaki komutu <b>Site Settings > Build settings > Build command</b> kısmına yapıştırın:
+              </p>
+              <button 
+                onClick={copyBuildCommand}
+                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-mono rounded border border-slate-700 transition-colors"
+              >
+                Komutu Kopyala
+              </button>
+            </div>
+          )}
           
           {loading && (
-            <div className="flex items-center gap-3 text-orange-500 text-sm animate-pulse">
+            <div className="flex items-center gap-3 text-orange-500 text-sm animate-pulse pt-2">
               <div className="w-2 h-2 bg-orange-500 rounded-full" />
               AI Uygulamayı Tasarlıyor...
             </div>
@@ -67,12 +104,13 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleGenerate()}
             placeholder="Örn: Stok takip uygulaması..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm focus:ring-2 focus:ring-orange-500 outline-none h-32 resize-none text-white"
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm focus:ring-2 focus:ring-orange-500 outline-none h-32 resize-none text-white transition-all disabled:opacity-50"
+            disabled={apiReady === false}
           />
           <button 
             onClick={handleGenerate}
-            disabled={loading}
-            className="w-full mt-4 py-3 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-bold rounded-xl transition-all active:scale-95"
+            disabled={loading || apiReady === false}
+            className="w-full mt-4 py-3 bg-orange-600 hover:bg-orange-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-orange-900/20"
           >
             {loading ? "Oluşturuluyor..." : "Uygulamayı Oluştur"}
           </button>
