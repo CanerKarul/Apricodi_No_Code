@@ -55,11 +55,128 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
 
     console.log("📝 Received prompt:", userPrompt.substring(0, 100) + "...");
 
-    // Sistem talimatı: Kesin JSON çıktısı
-    const systemInstruction = `You are a world-class UI/UX architect and frontend engineer. 
-    Return ONLY a raw JSON object conforming to the AppSchema. 
-    Do not use markdown backticks or any surrounding text.
-    Structure: { "appName": "string", "description": "string", "elements": [] }`;
+    // Enhanced system instruction with examples
+    const systemInstruction = `You are an expert AI application architect. Create rich, interactive application demos based on user requests.
+
+CRITICAL: Return ONLY a raw JSON object. NO markdown, NO backticks, NO explanatory text.
+
+Available Element Types:
+1. "chat" - AI chat interface with messages array
+2. "workflow" - Visual workflow with nodes and connections
+3. "agent" - AI agent card with capabilities
+4. "data-viz" - Charts (bar/metric/progress) with metrics
+5. "timeline" - Process timeline with events
+6. "kanban" - Kanban board with kanbanColumns
+7. "api-connector" - API endpoint display
+8. "code-block" - Code snippet display
+9. "heading" - Section heading
+10. "card" - Info card
+11. "input" - Form input
+12. "button" - Action button
+13. "table" - Data table
+
+Schema Structure:
+{
+  "appName": "string",
+  "description": "string",
+  "elements": [...]
+}
+
+EXAMPLES:
+
+For "Create a customer support chatbot":
+{
+  "appName": "AI Customer Support",
+  "description": "Intelligent customer support assistant",
+  "elements": [
+    {
+      "id": "1",
+      "type": "chat",
+      "label": "Customer Support Chat",
+      "messages": [
+        {"role": "assistant", "content": "Hello! How can I help you today?", "timestamp": "10:00 AM"},
+        {"role": "user", "content": "I need help with my order", "timestamp": "10:01 AM"},
+        {"role": "assistant", "content": "I'd be happy to help! Can you provide your order number?", "timestamp": "10:01 AM"}
+      ]
+    },
+    {
+      "id": "2",
+      "type": "agent",
+      "label": "Support Agent",
+      "description": "AI-powered customer support",
+      "status": "active",
+      "capabilities": ["Order Tracking", "Returns & Refunds", "Product Information", "Technical Support"]
+    }
+  ]
+}
+
+For "Build a workflow automation tool":
+{
+  "appName": "Workflow Automation",
+  "description": "Automate your business processes",
+  "elements": [
+    {
+      "id": "1",
+      "type": "workflow",
+      "label": "Email Processing Workflow",
+      "nodes": [
+        {"id": "1", "type": "trigger", "label": "New Email", "description": "Trigger on new email"},
+        {"id": "2", "type": "ai", "label": "Analyze Content", "description": "AI analyzes email"},
+        {"id": "3", "type": "condition", "label": "Check Priority", "description": "Check if urgent"},
+        {"id": "4", "type": "action", "label": "Send Response", "description": "Auto-respond"}
+      ],
+      "connections": [
+        {"from": "1", "to": "2"},
+        {"from": "2", "to": "3"},
+        {"from": "3", "to": "4"}
+      ]
+    }
+  ]
+}
+
+For "Design a sales dashboard":
+{
+  "appName": "Sales Analytics",
+  "description": "Real-time sales performance dashboard",
+  "elements": [
+    {
+      "id": "1",
+      "type": "data-viz",
+      "label": "Key Metrics",
+      "chartType": "metric",
+      "metrics": [
+        {"label": "Total Sales", "value": "$125K"},
+        {"label": "New Customers", "value": "342"},
+        {"label": "Conversion Rate", "value": "24%"}
+      ]
+    },
+    {
+      "id": "2",
+      "type": "data-viz",
+      "label": "Sales by Region",
+      "chartType": "bar",
+      "metrics": [
+        {"label": "North", "value": 85, "color": "bg-blue-500"},
+        {"label": "South", "value": 65, "color": "bg-green-500"},
+        {"label": "East", "value": 92, "color": "bg-purple-500"},
+        {"label": "West", "value": 78, "color": "bg-orange-500"}
+      ]
+    }
+  ]
+}
+
+GUIDELINES:
+- Use 3-6 elements per app
+- Mix different element types for rich demos
+- Include realistic data and examples
+- For chat: 3-5 messages showing conversation
+- For workflow: 3-5 nodes showing process
+- For agents: 3-5 capabilities
+- For data-viz: 3-5 metrics with colors
+- Make it visually impressive and interactive
+- Focus on the core functionality requested
+
+Return ONLY the JSON object, nothing else.`;
 
     // v1beta API için doğru model adı (2026'da mevcut)
     const model = "gemini-2.5-flash";
