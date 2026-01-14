@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { generateAppSchema } from '../services/gemini';
-import { AppSchema } from '../types';
-import DynamicRenderer from './DynamicRenderer';
-import LeadsModal from './LeadsModal';
+import { generateAppSchema } from '../services/gemini.ts';
+import { AppSchema } from '../types.ts';
+import DynamicRenderer from './DynamicRenderer.tsx';
+import LeadsModal from './LeadsModal.tsx';
 
 const INITIAL_SCHEMA: AppSchema = {
   appName: "Yeni Uygulama",
@@ -66,7 +66,7 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleGenerate()}
             placeholder="Örn: Stok takip uygulaması..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm focus:ring-2 focus:ring-orange-500 outline-none h-32 resize-none"
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm focus:ring-2 focus:ring-orange-500 outline-none h-32 resize-none text-white"
           />
           <button 
             onClick={handleGenerate}

@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import LandingPage from './components/LandingPage';
-import Dashboard from './components/Dashboard';
-import Builder from './components/Builder';
-import { User } from './types';
+import LandingPage from './components/LandingPage.tsx';
+import Dashboard from './components/Dashboard.tsx';
+import Builder from './components/Builder.tsx';
+import { User } from './types.ts';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -47,8 +47,8 @@ const App: React.FC = () => {
               const email = (e.currentTarget.elements.namedItem('email') as HTMLInputElement).value;
               handleLogin(email);
             }} className="space-y-4">
-              <input required name="email" type="email" placeholder="E-posta" className="w-full p-3 bg-slate-950 border border-slate-800 rounded-lg" />
-              <input required name="password" type="password" placeholder="Şifre" className="w-full p-3 bg-slate-950 border border-slate-800 rounded-lg" />
+              <input required name="email" type="email" placeholder="E-posta" className="w-full p-3 bg-slate-950 border border-slate-800 rounded-lg text-white" />
+              <input required name="password" type="password" placeholder="Şifre" className="w-full p-3 bg-slate-950 border border-slate-800 rounded-lg text-white" />
               <button className="w-full py-3 bg-orange-600 hover:bg-orange-500 rounded-lg font-bold">Giriş Yap</button>
             </form>
             <p className="mt-4 text-center text-slate-500 text-sm">
