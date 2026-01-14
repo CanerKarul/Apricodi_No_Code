@@ -5,6 +5,7 @@ const corsHeaders = {
 };
 
 export const handler = async (event: any) => {
+  console.log("DIKKAT: YENI KOD CALISIYOR - VERSIYON 5");
   // 1. CORS Preflight
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 204, headers: corsHeaders, body: "" };
