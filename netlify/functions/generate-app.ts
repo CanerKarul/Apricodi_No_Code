@@ -1,3 +1,4 @@
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Content-Type",
@@ -5,51 +6,107 @@ const corsHeaders = {
 };
 
 export const handler = async (event: any) => {
-  console.log("DIKKAT: YENI KOD CALISIYOR - VERSIYON 5");
-  // 1. CORS Preflight
+  // CORS Preflight kontrolü
   if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 204, headers: corsHeaders, body: "" };
+    return {
+      statusCode: 204,
+      headers: corsHeaders,
+      body: "",
+    };
   }
 
-  // 2. Sadece POST'a izin ver
+  // Sadece POST isteklerine izin ver
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: "Method Not Allowed" }) };
+    return {
+      statusCode: 405,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Method Not Allowed" }),
+    };
   }
 
   try {
-    // 3. Anahtarı al (Netlify Panelindeki isimle BURADAKİ isim AYNI OLMALI)
-    const apiKey = process.env.API_KEY; 
+    // API anahtarı sistem kuralları gereği process.env.API_KEY üzerinden alınır
+    const apiKey = process.env.API_KEY;
     
     if (!apiKey) {
-      return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: "API Key eksik (Netlify Ayarlarını kontrol et)." }) };
+      console.error("Environment Error: API_KEY is not defined in Netlify.");
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Missing API_KEY environment variable." }),
+      };
     }
 
     const requestBody = JSON.parse(event.body || "{}");
     const userPrompt = requestBody.prompt;
 
-    // 4. Gemini URL'si (ANAHTAR BURAYA EKLENİYOR - HEADER'A DEĞİL)
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    if (!userPrompt) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Prompt is required." }),
+      };
+    }
+
+    // Sistem talimatı: Kesin JSON çıktısı
+    const systemInstruction = `You are a world-class UI/UX architect and frontend engineer. 
+    Return ONLY a raw JSON object conforming to the AppSchema. 
+    Do not use markdown backticks or any surrounding text.
+    Structure: { "appName": "string", "description": "string", "elements": [] }`;
+
+    const model = "gemini-3-flash-preview";
+    
+    // ÇÖZÜM: API Key sadece URL query parametresi olarak gönderiliyor
+    // Authorization header kullanılmıyor.
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
-        // DİKKAT: Authorization satırı BURADA YOK. Sildik.
+        // Authorization başlığı 401 hatasını önlemek için kaldırıldı.
       },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: userPrompt }] }]
+        contents: [
+          {
+            parts: [
+              { text: `${systemInstruction}\n\nUser Request: ${userPrompt}` }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.7
+        }
       }),
     });
 
     const data = await response.json();
-    
+
+    if (!response.ok) {
+      console.error("Gemini API Error Status:", response.status);
+      console.error("Gemini API Response:", JSON.stringify(data, null, 2));
+      return {
+        statusCode: response.status,
+        headers: corsHeaders,
+        body: JSON.stringify(data),
+      };
+    }
+
     return {
-      statusCode: response.ok ? 200 : response.status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      statusCode: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(data),
     };
-
   } catch (err: any) {
-    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: err.message }) };
+    console.error("Netlify Function Exception:", err);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Internal Server Error", details: err.message }),
+    };
   }
 };
