@@ -27,9 +27,10 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       const newSchema = await generateAppSchema(prompt);
       setSchema(newSchema);
       setPrompt("");
-    } catch (error) {
-      alert("Hata oluştu! Lütfen tekrar deneyin.");
-      console.error(error);
+    } catch (error: any) {
+      console.error("Builder Error:", error);
+      const errorMessage = error.message || "Bilinmeyen bir hata oluştu.";
+      alert(`Hata: ${errorMessage}\n\nDetaylar için tarayıcı konsoluna (F12) bakın.`);
     } finally {
       setLoading(false);
     }

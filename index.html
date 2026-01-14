@@ -15,6 +15,10 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
     </style>
+    <script>
+        // Netlify build env check shim
+        window.process = window.process || { env: {} };
+    </script>
 <script type="importmap">
 {
   "imports": {
