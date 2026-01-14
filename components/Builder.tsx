@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { generateAppSchema } from '../services/gemini.ts';
 import { AppSchema } from '../types.ts';
 import DynamicRenderer from './DynamicRenderer.tsx';
@@ -19,13 +19,6 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [loading, setLoading] = useState(false);
   const [schema, setSchema] = useState<AppSchema>(INITIAL_SCHEMA);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [apiReady, setApiReady] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const key = process.env.API_KEY;
-    const isMissing = !key || key === "undefined" || key === "" || key.includes("process.env");
-    setApiReady(!isMissing);
-  }, []);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -55,41 +48,36 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           <div className="bg-slate-800/50 p-4 rounded-xl text-sm border border-slate-700/50 text-slate-300">
-            Nasıl bir uygulama oluşturmak istersin? İhtiyaçlarını detaylıca yazarsan daha iyi sonuçlar verebilirim.
+            Nasıl bir uygulama oluşturmak istersin? Detaylıca anlat, Apricodi hemen tasarlasın.
           </div>
 
           <div className="flex items-center gap-2 px-1">
-             <div className={`w-2 h-2 rounded-full ${apiReady ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 animate-pulse'}`} />
+             <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
              <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500">
-               AI SYSTEM: {apiReady ? 'READY' : 'CONFIG ERROR'}
+               CLOUD PROXY: ACTIVE
              </span>
           </div>
           
           {loading && (
             <div className="flex items-center gap-3 text-orange-500 text-sm animate-pulse pt-2">
               <div className="w-2 h-2 bg-orange-500 rounded-full" />
-              AI Uygulamayı Tasarlıyor...
+              AI Mimariyi Çiziyor...
             </div>
           )}
         </div>
 
         <div className="p-6 border-t border-slate-800 bg-slate-900">
-          {!apiReady && (
-            <div className="mb-4 p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-[11px] text-red-400 leading-relaxed">
-              ⚠️ <b>Hata:</b> API anahtarı bulunamadı. Lütfen Netlify panelinden <b>API_KEY</b> değişkenini kontrol edip siteyi yeniden deploy edin.
-            </div>
-          )}
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleGenerate()}
-            placeholder="Örn: Stok takip uygulaması..."
+            placeholder="Örn: Müşteri randevu sistemi..."
             className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm focus:ring-2 focus:ring-orange-500 outline-none h-32 resize-none text-white transition-all disabled:opacity-50"
-            disabled={apiReady === false}
+            disabled={loading}
           />
           <button 
             onClick={handleGenerate}
-            disabled={loading || apiReady === false}
+            disabled={loading}
             className="w-full mt-4 py-3 bg-orange-600 hover:bg-orange-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-orange-900/20"
           >
             {loading ? "Oluşturuluyor..." : "Uygulamayı Oluştur"}

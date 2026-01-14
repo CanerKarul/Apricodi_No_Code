@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   define: {
-    // Netlify ortam değişkenini koda gömer, yoksa boş string döner
+    // Derleme anında koddaki process.env.API_KEY ifadelerini gerçek anahtarla değiştirir.
     'process.env.API_KEY': JSON.stringify(process.env.API_KEY || ''),
   },
   build: {
