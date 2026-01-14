@@ -1,74 +1,84 @@
-
-import { GoogleGenAI, Type } from "@google/genai";
-
 export default async (req: Request) => {
+  // CORS Preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+      },
+    });
+  }
+
   if (req.method !== "POST") {
-    return new Response("Method Not Allowed", { status: 405 });
+    return new Response(JSON.stringify({ error: "Method Not Allowed" }), { status: 405 });
   }
 
   try {
-    const { prompt } = await req.json();
-    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
-
+    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: "Sunucu tarafında API_KEY yapılandırılmamış." }),
+        JSON.stringify({ error: "Missing GEMINI_API_KEY on Netlify. Lütfen Environment Variables kısmını kontrol edin." }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Generate a fully functional UI JSON schema for this application request: "${prompt}". 
-      The response must be a single, valid JSON object containing appName, description, and elements array.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            appName: { type: Type.STRING },
-            description: { type: Type.STRING },
-            elements: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.STRING },
-                  type: { type: Type.STRING, enum: ['input', 'select', 'button', 'table', 'heading', 'card'] },
-                  label: { type: Type.STRING },
-                  inputType: { type: Type.STRING },
-                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  placeholder: { type: Type.STRING },
-                  content: { type: Type.STRING },
-                  columns: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  data: { 
-                    type: Type.ARRAY, 
-                    items: { 
-                      type: Type.ARRAY, 
-                      items: { type: Type.STRING } 
-                    }
-                  }
-                },
-                required: ['id', 'type', 'label']
-              }
-            }
-          },
-          required: ['appName', 'elements']
-        },
-        systemInstruction: "You are a professional software architect. Return only JSON schema, no markdown or extra text.",
-      },
+    const { prompt } = await req.json();
+    
+    // API Key ile çalışan v1beta REST endpoint
+    const model = "gemini-1.5-flash"; 
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    const systemInstruction = `You are a professional UI/UX architect. 
+    Generate a functional UI JSON schema. 
+    The output must be a valid JSON object matching this structure:
+    {
+      "appName": "string",
+      "description": "string",
+      "elements": [
+        {
+          "id": "string",
+          "type": "input|select|button|table|heading|card",
+          "label": "string",
+          "placeholder": "string?",
+          "content": "string?",
+          "options": ["string"]?,
+          "columns": ["string"]?,
+          "data": [["string"]]?
+        }
+      ]
+    }`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ 
+          parts: [{ text: `System Instruction: ${systemInstruction}\n\nUser Request: ${prompt}` }] 
+        }],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      }),
     });
 
-    return new Response(response.text, {
+    const data = await response.json();
+
+    if (!response.ok) {
+      return new Response(JSON.stringify(data), { 
+        status: response.status, 
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
+      });
+    }
+
+    return new Response(JSON.stringify(data), {
       status: 200,
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
     });
   } catch (error: any) {
-    console.error("Function Error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message || "Uygulama oluşturulurken bir hata oluştu." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Server Error", details: error.message }), { 
+      status: 500,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+    });
   }
 };
