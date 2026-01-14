@@ -22,7 +22,6 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [apiReady, setApiReady] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Check if API key is properly injected
     const key = process.env.API_KEY;
     const isMissing = !key || key === "undefined" || key === "" || key.includes("process.env");
     setApiReady(!isMissing);
@@ -37,21 +36,15 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       setPrompt("");
     } catch (error: any) {
       console.error("Builder Error:", error);
-      alert(error.message || "Bilinmeyen bir hata oluştu.");
+      alert(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const copyBuildCommand = () => {
-    const cmd = `find . -name "*.js" -o -name "*.ts" -o -name "*.tsx" | xargs sed -i "s|process.env.API_KEY|'$API_KEY'|g" && npm run build`;
-    navigator.clipboard.writeText(cmd);
-    alert("Build komutu kopyalandı! Netlify paneline yapıştırabilirsiniz.");
-  };
-
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-950">
-      {/* Sidebar - Chat */}
+    <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-100">
+      {/* Sidebar */}
       <div className="w-[350px] border-r border-slate-800 flex flex-col bg-slate-900/50 backdrop-blur-xl">
         <div className="p-6 border-b border-slate-800 flex items-center justify-between">
           <button onClick={onBack} className="text-slate-400 hover:text-white flex items-center gap-2">
@@ -61,34 +54,16 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          <div className="bg-slate-800/50 p-4 rounded-xl text-sm border border-slate-700/50">
-            <p className="text-slate-400">AI Asistanı:</p>
-            <p className="mt-1">Nasıl bir uygulama oluşturmak istersin? İhtiyaçlarını detaylıca yazarsan daha iyi sonuçlar verebilirim.</p>
+          <div className="bg-slate-800/50 p-4 rounded-xl text-sm border border-slate-700/50 text-slate-300">
+            Nasıl bir uygulama oluşturmak istersin? İhtiyaçlarını detaylıca yazarsan daha iyi sonuçlar verebilirim.
           </div>
 
-          {/* API Status Indicator */}
           <div className="flex items-center gap-2 px-1">
-             <div className={`w-2 h-2 rounded-full ${apiReady === true ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : apiReady === false ? 'bg-red-500 animate-pulse' : 'bg-slate-600'}`} />
+             <div className={`w-2 h-2 rounded-full ${apiReady ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 animate-pulse'}`} />
              <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500">
-               AI SYSTEM: {apiReady === true ? 'READY' : apiReady === false ? 'CONFIG ERROR' : 'CHECKING...'}
+               AI SYSTEM: {apiReady ? 'READY' : 'CONFIG ERROR'}
              </span>
           </div>
-
-          {/* Troubleshooting Help */}
-          {apiReady === false && (
-            <div className="bg-slate-900/80 border border-orange-500/20 p-4 rounded-xl space-y-3">
-              <p className="text-[11px] text-orange-400 font-bold uppercase">Netlify Kurulum Rehberi</p>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Netlify, güvenlik nedeniyle değişkenleri koda otomatik gömmez. Aşağıdaki komutu <b>Site Settings > Build settings > Build command</b> kısmına yapıştırın:
-              </p>
-              <button 
-                onClick={copyBuildCommand}
-                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-mono rounded border border-slate-700 transition-colors"
-              >
-                Komutu Kopyala
-              </button>
-            </div>
-          )}
           
           {loading && (
             <div className="flex items-center gap-3 text-orange-500 text-sm animate-pulse pt-2">
@@ -99,6 +74,11 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         </div>
 
         <div className="p-6 border-t border-slate-800 bg-slate-900">
+          {!apiReady && (
+            <div className="mb-4 p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-[11px] text-red-400 leading-relaxed">
+              ⚠️ <b>Hata:</b> API anahtarı bulunamadı. Lütfen Netlify panelinden <b>API_KEY</b> değişkenini kontrol edip siteyi yeniden deploy edin.
+            </div>
+          )}
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -117,7 +97,7 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Main Canvas */}
+      {/* Main Preview */}
       <div className="flex-1 flex flex-col">
         <header className="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-900/30">
           <div className="flex items-center gap-4">
@@ -129,18 +109,8 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             <span className="text-slate-500 text-xs font-mono uppercase tracking-widest">{schema.appName} / Preview</span>
           </div>
           <div className="flex gap-3">
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="px-4 py-1.5 border border-slate-700 hover:bg-slate-800 rounded-lg text-sm font-semibold transition-all"
-            >
-              Kodu İndir
-            </button>
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="px-4 py-1.5 bg-orange-600 hover:bg-orange-500 rounded-lg text-sm font-bold shadow-lg shadow-orange-900/20"
-            >
-              Yayınla
-            </button>
+            <button onClick={() => setIsModalOpen(true)} className="px-4 py-1.5 border border-slate-700 hover:bg-slate-800 rounded-lg text-sm font-semibold transition-all">Kodu İndir</button>
+            <button onClick={() => setIsModalOpen(true)} className="px-4 py-1.5 bg-orange-600 hover:bg-orange-500 rounded-lg text-sm font-bold">Yayınla</button>
           </div>
         </header>
 
@@ -154,11 +124,7 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         </main>
       </div>
 
-      <LeadsModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        projectId="new-id" 
-      />
+      <LeadsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} projectId="new-id" />
     </div>
   );
 };

@@ -3,18 +3,13 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AppSchema } from "../types.ts";
 
 export const generateAppSchema = async (prompt: string): Promise<AppSchema> => {
-  // Try to capture the API key from environment
   const apiKey = process.env.API_KEY;
 
-  // Netlify ve diğer ortamlarda process.env.API_KEY bazen düz metin olarak kalır.
-  // Bu kontrol, anahtarın gerçekten enjekte edilip edilmediğini kontrol eder.
   if (!apiKey || apiKey === "undefined" || apiKey === "" || apiKey.includes("process.env")) {
-    console.error("CRITICAL: API_KEY is not injected into the browser context.");
+    console.error("CRITICAL: API_KEY is missing in browser context.");
     throw new Error(
-      "API_KEY_YAPILANDIRMA_HATASI: Netlify ortam değişkeni (Environment Variable) koda enjekte edilemedi.\n\n" +
-      "Kesin Çözüm İçin Netlify Build Settings'deki 'Build Command' alanını şu şekilde güncelleyin:\n\n" +
-      "find . -name \"*.js\" -o -name \"*.ts\" -o -name \"*.tsx\" | xargs sed -i \"s|process.env.API_KEY|'$API_KEY'|g\" && npm run build\n\n" +
-      "Ardından 'Clear cache and deploy' yaparak yeniden yayına alın."
+      "API YAPILANDIRMASI EKSİK: Uygulama API anahtarına erişemiyor.\n\n" +
+      "Lütfen Netlify -> Site Settings -> Environment variables kısmında 'API_KEY' değişkeninin tanımlı olduğundan emin olun."
     );
   }
 
@@ -23,9 +18,8 @@ export const generateAppSchema = async (prompt: string): Promise<AppSchema> => {
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Generate a fully functional UI JSON schema for this application request: "${prompt}".
-      The schema must include components like forms, tables, cards, and headings.
-      Ensure the data for tables matches the column count.`,
+      contents: `Generate a fully functional UI JSON schema for this application: "${prompt}". 
+      The response must be a valid JSON object containing appName, description, and elements array.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -60,16 +54,14 @@ export const generateAppSchema = async (prompt: string): Promise<AppSchema> => {
           },
           required: ['appName', 'elements']
         },
-        systemInstruction: "You are a world-class UI/UX Architect. Return ONLY valid JSON schema for the requested UI. Do not add any markdown formatting or text explanations.",
+        systemInstruction: "You are a professional software architect. Return only JSON schema, no markdown.",
       },
     });
 
-    const text = response.text || "";
-    // Temizleme işlemi (bazen model markdown blokları içinde döndürebiliyor)
-    const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleanJson) as AppSchema;
+    const resultText = response.text || "";
+    return JSON.parse(resultText) as AppSchema;
   } catch (error: any) {
-    console.error("Gemini API Error Detail:", error);
-    throw error;
+    console.error("Gemini API Error:", error);
+    throw new Error("Yapay zeka yanıt veremedi. Lütfen isteminizi kontrol edin veya tekrar deneyin.");
   }
 };
