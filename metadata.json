@@ -1,0 +1,8 @@
+{
+  "name": "Apricodi No-Code AI Builder",
+  "description": "A sophisticated AI-powered SaaS platform that transforms natural language prompts into functional, dynamically rendered application prototypes.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
