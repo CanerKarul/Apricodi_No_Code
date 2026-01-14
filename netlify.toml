@@ -12,13 +12,11 @@
 # API_KEY = "your-gemini-api-key-here"
 
 # SPA routing için tüm istekleri index.html'e yönlendir
+# API fonksiyonları otomatik olarak hariç tutulur
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  # API fonksiyonlarını hariç tut
-  conditions = {Role = ["admin", "user"]}
-  force = false
 
 # Functions için özel ayarlar
 [functions]
