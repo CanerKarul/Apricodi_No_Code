@@ -1,0 +1,30 @@
+# Netlify Configuration for Apricodi No-Code AI Builder
+
+[build]
+  # Vite build komutu
+  command = "npm run build"
+  # Build çıktı dizini
+  publish = "dist"
+  # Functions dizini
+  functions = "netlify/functions"
+
+# Environment variables (Netlify Dashboard'dan eklenmelidir)
+# API_KEY = "your-gemini-api-key-here"
+
+# SPA routing için tüm istekleri index.html'e yönlendir
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  # API fonksiyonlarını hariç tut
+  conditions = {Role = ["admin", "user"]}
+  force = false
+
+# Functions için özel ayarlar
+[functions]
+  # Node.js versiyonu
+  node_bundler = "esbuild"
+  # Function timeout (saniye)
+  # Gemini API çağrıları için yeterli süre
+  [functions."generate-app"]
+    timeout = 30
