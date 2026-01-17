@@ -1,9 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { generateAppSchema } from '../services/gemini.ts';
 import { AppSchema } from '../types.ts';
 import DynamicRenderer from './DynamicRenderer.tsx';
 import LeadsModal from './LeadsModal.tsx';
+import { createProject, updateProject } from '../services/supabase.ts';
+import { User } from '../types.ts';
 
 const INITIAL_SCHEMA: AppSchema = {
   appName: "Yeni Uygulama",
@@ -14,11 +16,27 @@ const INITIAL_SCHEMA: AppSchema = {
   ]
 };
 
-const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+interface BuilderProps {
+  onBack: () => void;
+  user: User;
+  projectId?: string;
+  initialSchema?: AppSchema;
+}
+
+const Builder: React.FC<BuilderProps> = ({ onBack, user, projectId, initialSchema }) => {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
-  const [schema, setSchema] = useState<AppSchema>(INITIAL_SCHEMA);
+  const [schema, setSchema] = useState<AppSchema>(initialSchema || INITIAL_SCHEMA);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+
+  useEffect(() => {
+    if (schema !== INITIAL_SCHEMA && schema !== initialSchema) {
+      setSaveStatus('unsaved');
+    }
+  }, [schema]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -27,11 +45,50 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       const newSchema = await generateAppSchema(prompt);
       setSchema(newSchema);
       setPrompt("");
+      setSaveStatus('unsaved');
     } catch (error: any) {
       console.error("Builder Error:", error);
       alert(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveProject = async () => {
+    if (!schema || schema === INITIAL_SCHEMA) {
+      alert('Lütfen önce bir uygulama oluşturun.');
+      return;
+    }
+
+    setSaving(true);
+    setSaveStatus('saving');
+
+    try {
+      if (currentProjectId) {
+        // Update existing project
+        await updateProject(currentProjectId, {
+          name: schema.appName,
+          description: schema.description,
+          schema: schema
+        });
+      } else {
+        // Create new project
+        const newProject = await createProject({
+          user_id: user.id,
+          name: schema.appName,
+          description: schema.description,
+          schema: schema
+        });
+        setCurrentProjectId(newProject.id);
+      }
+      setSaveStatus('saved');
+      alert('Proje başarıyla kaydedildi!');
+    } catch (error: any) {
+      console.error('Save error:', error);
+      alert('Proje kaydedilirken bir hata oluştu: ' + error.message);
+      setSaveStatus('unsaved');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -91,9 +148,21 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               <p className="text-xs text-slate-400">Bu birkaç saniye sürebilir</p>
             </div>
           )}
+
+          {/* Save Status Indicator */}
+          {saveStatus !== 'saved' && schema !== INITIAL_SCHEMA && (
+            <div className="bg-amber-900/20 border border-amber-800/50 rounded-xl p-3">
+              <div className="flex items-center gap-2 text-amber-500 text-xs">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Kaydedilmemiş değişiklikler
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="p-6 border-t border-slate-800 bg-slate-900">
+        <div className="p-6 border-t border-slate-800 bg-slate-900 space-y-3">
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -105,9 +174,32 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           <button
             onClick={handleGenerate}
             disabled={loading}
-            className="w-full mt-4 py-3 bg-orange-600 hover:bg-orange-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-orange-900/20"
+            className="w-full py-3 bg-orange-600 hover:bg-orange-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-orange-900/20"
           >
             {loading ? "Oluşturuluyor..." : "Uygulamayı Oluştur"}
+          </button>
+
+          {/* Save Button */}
+          <button
+            onClick={handleSaveProject}
+            disabled={saving || schema === INITIAL_SCHEMA}
+            className="w-full py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all active:scale-95 border border-slate-700"
+          >
+            {saving ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Kaydediliyor...
+              </span>
+            ) : saveStatus === 'saved' ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Kaydedildi
+              </span>
+            ) : (
+              "Projeyi Kaydet"
+            )}
           </button>
         </div>
       </div>
@@ -139,7 +231,7 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         </main>
       </div>
 
-      <LeadsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} projectId="new-id" />
+      <LeadsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} projectId={currentProjectId || 'new-id'} />
     </div>
   );
 };

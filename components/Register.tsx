@@ -58,7 +58,10 @@ const Register: React.FC<RegisterProps> = ({ onSuccess, onBackToLogin }) => {
                     data: {
                         name: formData.name,
                         company: formData.company
-                    }
+                    },
+                    emailRedirectTo: window.location.hostname === 'localhost'
+                        ? 'http://localhost:5173/dashboard'
+                        : 'https://apricodi-builder.netlify.app/dashboard'
                 }
             });
 

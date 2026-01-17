@@ -17,6 +17,7 @@
   from = "/*"
   to = "/index.html"
   status = 200
+  force = false
 
 # Functions için özel ayarlar
 [functions]
