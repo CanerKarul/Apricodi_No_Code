@@ -13,7 +13,8 @@ export type ElementType =
   | 'api-connector'
   | 'code-block'
   | 'timeline'
-  | 'kanban';
+  | 'kanban'
+  | 'contact-form';
 
 export interface DynamicElement {
   id: string;
@@ -36,6 +37,19 @@ export interface DynamicElement {
     content: string;
     timestamp?: string;
   }>;
+  companyInfo?: {
+    name?: string;
+    description?: string;
+    products?: string[];
+    services?: string[];
+    [key: string]: any;
+  };
+  qaDatabase?: Array<{
+    question: string;
+    answer: string;
+    keywords?: string[];
+  }>;
+  botPersonality?: string;
 
   // Workflow
   nodes?: Array<{
@@ -108,12 +122,19 @@ export interface Project {
 export interface User {
   id: string;
   email: string;
+  name?: string;
+  company?: string;
+  created_at?: string;
 }
 
 export interface Lead {
+  id?: string;
   name: string;
   email: string;
   phone: string;
   company: string;
-  projectId: string;
+  message: string;
+  interest_area?: string;
+  projectId?: string;
+  created_at?: string;
 }

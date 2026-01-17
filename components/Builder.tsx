@@ -58,11 +58,11 @@ const Builder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Örnek Promptlar</h4>
             <div className="space-y-2">
               {[
-                "Müşteri destek chatbot'u oluştur",
-                "E-posta işleme workflow aracı yap",
-                "Satış analitik dashboard'u tasarla",
-                "Multi-agent araştırma asistanı",
-                "API test arayüzü oluştur"
+                "Müşteri destek chatbot'u oluştur - TechCorp adlı yazılım şirketi için, ürünlerimiz: AI Analytics, Cloud Platform, API Gateway",
+                "E-ticaret sitesi için sipariş takip chatbot'u yap - müşteriler sipariş durumunu sorgulayabilsin",
+                "Satış analitik dashboard'u tasarla - aylık satışlar, müşteri sayısı, gelir grafiklerini göster",
+                "Restoran rezervasyon chatbot'u - Bella Italia restoranı için, menü bilgisi ve rezervasyon alabilsin",
+                "Multi-agent araştırma asistanı - web'den veri toplasın ve analiz etsin"
               ].map((example, idx) => (
                 <button
                   key={idx}

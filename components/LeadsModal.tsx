@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { createLead } from '../services/supabase.ts';
 
 interface LeadsModalProps {
   isOpen: boolean;
@@ -8,25 +9,64 @@ interface LeadsModalProps {
 }
 
 const LeadsModal: React.FC<LeadsModalProps> = ({ isOpen, onClose, projectId }) => {
-  const [submitted, setSubmitted] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
+    message: 'Kod indirme veya yayınlama talebi'
+  });
+
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate Supabase logic
-    setTimeout(() => {
-      setLoading(false);
+    setError('');
+
+    try {
+      await createLead({
+        ...formData,
+        interest_area: 'code_download',
+        project_id: projectId
+      });
+
       setSubmitted(true);
-    }, 1500);
+
+      setTimeout(() => {
+        onClose();
+        setSubmitted(false);
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          company: '',
+          message: 'Kod indirme veya yayınlama talebi'
+        });
+      }, 2000);
+    } catch (err: any) {
+      console.error('Lead submission error:', err);
+      setError(err.message || 'Form gönderilirken bir hata oluştu.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-slate-900 border border-slate-700 w-full max-w-md p-8 rounded-2xl shadow-2xl relative">
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors"
         >
@@ -46,23 +86,47 @@ const LeadsModal: React.FC<LeadsModalProps> = ({ isOpen, onClose, projectId }) =
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <input 
+              <input
                 required
-                placeholder="Ad Soyad" 
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white" 
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Ad Soyad"
+                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white"
               />
-              <input 
+              <input
                 required
-                type="email" 
-                placeholder="E-posta Adresi" 
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white" 
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="E-posta Adresi"
+                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white"
               />
-              <input 
+              <input
                 required
-                placeholder="Şirket / Proje Adı" 
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white" 
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="Telefon"
+                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white"
               />
-              <button 
+              <input
+                required
+                name="company"
+                value={formData.company}
+                onChange={handleChange}
+                placeholder="Şirket / Proje Adı"
+                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white"
+              />
+
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <button
                 disabled={loading}
                 className="w-full py-3 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-bold rounded-lg transition-all"
               >
@@ -79,7 +143,7 @@ const LeadsModal: React.FC<LeadsModalProps> = ({ isOpen, onClose, projectId }) =
             </div>
             <h2 className="text-2xl font-bold mb-2">Talebiniz Alındı!</h2>
             <p className="text-slate-400">Satış ekibimiz sizinle en kısa sürede iletişime geçecek. Harika bir uygulama bizi bekliyor!</p>
-            <button 
+            <button
               onClick={onClose}
               className="mt-6 text-orange-500 hover:underline"
             >

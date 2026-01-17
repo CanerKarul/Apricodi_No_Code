@@ -5,6 +5,7 @@ import ChatInterface from './ChatInterface.tsx';
 import WorkflowVisualizer from './WorkflowVisualizer.tsx';
 import AgentCard from './AgentCard.tsx';
 import DataVisualization from './DataVisualization.tsx';
+import ContactForm from './ContactForm.tsx';
 
 interface DynamicRendererProps {
   schema: AppSchema;
@@ -123,8 +124,8 @@ const DynamicRenderer: React.FC<DynamicRendererProps> = ({ schema }) => {
                 <div key={idx} className="flex gap-4">
                   <div className="flex flex-col items-center">
                     <div className={`w-3 h-3 rounded-full ${event.status === 'completed' ? 'bg-green-500' :
-                        event.status === 'in-progress' ? 'bg-blue-500 animate-pulse' :
-                          'bg-slate-600'
+                      event.status === 'in-progress' ? 'bg-blue-500 animate-pulse' :
+                        'bg-slate-600'
                       }`}></div>
                     {idx < (el.events?.length || 0) - 1 && (
                       <div className="w-0.5 h-full bg-slate-800 flex-1 mt-1"></div>
@@ -152,10 +153,10 @@ const DynamicRenderer: React.FC<DynamicRendererProps> = ({ schema }) => {
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <span className={`px-3 py-1 rounded-lg font-mono text-xs font-bold ${el.method === 'GET' ? 'bg-green-900 text-green-300' :
-                    el.method === 'POST' ? 'bg-blue-900 text-blue-300' :
-                      el.method === 'PUT' ? 'bg-yellow-900 text-yellow-300' :
-                        el.method === 'DELETE' ? 'bg-red-900 text-red-300' :
-                          'bg-slate-800 text-slate-300'
+                  el.method === 'POST' ? 'bg-blue-900 text-blue-300' :
+                    el.method === 'PUT' ? 'bg-yellow-900 text-yellow-300' :
+                      el.method === 'DELETE' ? 'bg-red-900 text-red-300' :
+                        'bg-slate-800 text-slate-300'
                   }`}>
                   {el.method || 'GET'}
                 </span>
@@ -200,6 +201,9 @@ const DynamicRenderer: React.FC<DynamicRendererProps> = ({ schema }) => {
             </div>
           </div>
         );
+
+      case 'contact-form':
+        return <div key={el.id} className="mb-6"><ContactForm element={el} /></div>;
 
       default:
         return null;
